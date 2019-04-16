@@ -75,6 +75,27 @@ class IdentityProx(ProximityParent):
         self.cost = lambda x: 0.0
 
 
+class ProjectionLInftyBall(ProximityParent):
+
+    def __init__(self, thresh=1.0):
+
+        self.op = self._op_method
+        self.cost = self._cost_method
+        self.thresh = thresh
+
+    def _op_method(self, x, extra_factor=1.0):
+        thresh = self.thresh * np.ones_like(x)
+        proj_real =  np.maximum(-thresh, np.minimum(thresh, x.real))
+        proj_im =  np.maximum(-thresh, np.minimum(thresh, x.imag))
+        return proj_real + 1j * proj_im
+
+    def _cost_method(self, x):
+        if np.max(x.real) > self.thresh or np.max(x.imag) > self.thresh:
+            return np.Inf
+        else:
+            return 0.0
+
+
 class Positivity(ProximityParent):
     """Positivity Proximity Operator
 
