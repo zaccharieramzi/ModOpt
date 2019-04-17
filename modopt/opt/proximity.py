@@ -11,12 +11,17 @@ This module contains classes of proximity operators for optimisation
 from __future__ import print_function
 from builtins import range
 import numpy as np
+
 from modopt.base.types import check_callable
 from modopt.signal.noise import thresh
 from modopt.signal.svd import svd_thresh, svd_thresh_coef
 from modopt.signal.positivity import positive
 from modopt.math.matrix import nuclear_norm
 from modopt.base.transform import cube2matrix, matrix2cube
+from modopt.opt.algorithms import Condat
+from modopt.opt.gradient import GradBasic
+from modopt.opt.linear import Identity
+from modopt.opt.proximity import SparseThreshold
 
 
 class ProximityParent(object):
@@ -342,6 +347,71 @@ class LinearCompositionProx(ProximityParent):
         float the cost of the associated composed function
         """
         return self.prox_op.cost(self.linear_op.op(args[0]), **kwargs)
+
+
+class LinearCompositionIterativeProx(LinearCompositionProx):
+    """ Proximity operator of the composition of a function with a linear
+    function computed in an iterative fashion
+    """
+    def __init__(
+            self,
+            linear_op,
+            prox_op,
+            max_precision_level=None,
+            solver_sigma=10.0,
+        ):
+        super(LinearCompositionIterativeProx, self).__init__(linear_op, prox_op)
+        self.max_precision_level = max_precision_level
+        self.solver_sigma = solver_sigma
+
+    def _op_method(self, data, extra_factor=1.0, precision_level=None):
+        """Solve the proximity oeprator primal optimisation problem
+        """
+        # setting the number of iterations for the solver
+        max_iter = 100
+        if precision_level is not None:
+            max_iter = precision_level
+        if self.max_precision_level is not None:
+            max_iter = min(max_iter, self.max_precision_level)
+
+        # defining the solver operators
+        dual_init = self.linear_op.op(data)
+        gradient_op = GradBasic(data, Identity().op, Identity().adj_op)
+        prox_op_primal = Identity()
+        prox_op_dual = SparseThreshold(self.linear_op, None, thresh_type="soft")
+        prox_op_dual.weights = extra_factor * np.ones_like(dual_init)
+
+        # solver params
+        lipschitz_cst = 1.0  # because identity
+        sigma = self.solver_sigma
+        eps = 1.0e-8  # avoid numerical errors
+        linear_op_norm = self.linear_op.l2norm(data.shape)
+        tau = 1.0 / (lipschitz_cst/2 + sigma * linear_op_norm **2 + eps)
+        # NOTE: maybe allow rho to be set
+        rho = 1.0
+
+        # solver definition
+        opt = Condat(
+            x=data,
+            y=dual_init,
+            grad=gradient_op,
+            prox=prox_op_primal,
+            prox_dual=prox_op_dual,
+            linear=self.linear_op,
+            cost=None,
+            sigma=sigma,
+            tau=tau,
+            rho=rho,
+            auto_iterate=False,
+            metric_call_period=0,
+            metrics=None,
+        )
+        # run the computation
+        opt.iterate(max_iter=max_iter)
+        x_final = opt.x_final
+
+        return x_final
+
 
 
 class ProximityCombo(ProximityParent):
