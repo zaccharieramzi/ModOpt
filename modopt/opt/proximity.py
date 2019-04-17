@@ -402,8 +402,8 @@ class LinearCompositionIterativeProx(LinearCompositionProx):
             tau=tau,
             rho=rho,
             auto_iterate=False,
-            metric_call_period=0,
-            metrics=None,
+            metric_call_period=1,
+            metrics={},
         )
         # run the computation
         opt.iterate(max_iter=max_iter)
