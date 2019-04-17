@@ -494,8 +494,7 @@ class ForwardBackward(SetUp):
     def __init__(self, x, grad, prox, cost='auto', beta_param=1.0,
                  lambda_param=1.0, beta_update=None, lambda_update='fista',
                  auto_iterate=True, metric_call_period=5, metrics={},
-                 linear=None, **kwargs):
-
+                 linear=None, iterative_prox=False, **kwargs):
         # Set default algorithm properties
         super(ForwardBackward, self).__init__(
            metric_call_period=metric_call_period,
@@ -524,11 +523,12 @@ class ForwardBackward(SetUp):
 
         if self._linear is None:
             self._linear = Identity()
-
+        self.iterative_prox = iterative_prox
         # Set the algorithm parameters
         (self._check_param(param) for param in (beta_param, lambda_param))
         self._beta = beta_param
         self._lambda = lambda_param
+
 
         # Set the algorithm parameter update methods
         self._check_param_update(beta_update)
@@ -579,7 +579,14 @@ class ForwardBackward(SetUp):
         y_old = self._z_old - self._beta * self._grad.grad
 
         # Step 2 from alg.10.7.
-        self._x_new = self._prox.op(y_old, extra_factor=self._beta)
+        extra_args = {}
+        if self.iterative_prox:
+            extra_args['precision_level'] = self.idx
+        self._x_new = self._prox.op(
+            y_old,
+            extra_factor=self._beta,
+            **extra_args,
+        )
 
         # Step 5 from alg.10.7.
         self._z_new = self._x_old + self._lambda * (self._x_new - self._x_old)
