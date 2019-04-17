@@ -21,7 +21,6 @@ from modopt.base.transform import cube2matrix, matrix2cube
 from modopt.opt.algorithms import Condat
 from modopt.opt.gradient import GradBasic
 from modopt.opt.linear import Identity
-from modopt.opt.proximity import SparseThreshold
 
 
 class ProximityParent(object):
