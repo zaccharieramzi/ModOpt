@@ -9,7 +9,10 @@ This module contains classes of proximity operators for optimisation
 """
 
 from __future__ import print_function
+
+import copy
 from builtins import range
+
 import numpy as np
 
 from modopt.base.types import check_callable
@@ -367,7 +370,10 @@ class LinearCompositionIterativeProx(LinearCompositionProx):
         """Solve the proximity oeprator primal optimisation problem
         """
         # setting the number of iterations for the solver
-        max_iter = 100
+        if self.max_precision_level is None:
+            max_iter = 100
+        else:
+            max_iter = self.max_precision_level
         if precision_level is not None:
             max_iter = precision_level
         if self.max_precision_level is not None:
@@ -377,9 +383,10 @@ class LinearCompositionIterativeProx(LinearCompositionProx):
         dual_init = self.linear_op.op(data)
         gradient_op = GradBasic(data, Identity().op, Identity().adj_op)
         prox_op_primal = Identity()
-        prox_op_dual = SparseThreshold(self.linear_op, None, thresh_type="soft")
-        prox_op_dual.weights = extra_factor * np.ones_like(dual_init)
-
+        prox_op_dual = copy.deepcopy(self.prox_op)
+        prox_op_dual.weights = extra_factor * self.prox_op.weights
+        # quick fix for https://stackoverflow.com/questions/55763862/how-can-i-deep-copy-an-object-whose-parent-class-has-a-wrapped-function
+        prox_op_dual.op = prox_op_dual._op_method
         # solver params
         lipschitz_cst = 1.0  # because identity
         sigma = self.solver_sigma
