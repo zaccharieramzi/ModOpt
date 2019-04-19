@@ -581,7 +581,7 @@ class ForwardBackward(SetUp):
         # Step 2 from alg.10.7.
         extra_args = {}
         if self.iterative_prox:
-            extra_args['precision_level'] = self.idx
+            extra_args['precision_level'] = max(int(0.5 * (self.idx + 1)), 1)
         self._x_new = self._prox.op(
             y_old,
             extra_factor=self._beta,
