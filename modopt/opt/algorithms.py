@@ -494,7 +494,10 @@ class ForwardBackward(SetUp):
     def __init__(self, x, grad, prox, cost='auto', beta_param=1.0,
                  lambda_param=1.0, beta_update=None, lambda_update='fista',
                  auto_iterate=True, metric_call_period=5, metrics={},
-                 linear=None, iterative_prox=False, **kwargs):
+                 linear=None, iterative_prox=False, adaptative_precision=False,
+                 initial_precision_level=2, precision_increase_rate=2,
+                 **kwargs):
+
         # Set default algorithm properties
         super(ForwardBackward, self).__init__(
            metric_call_period=metric_call_period,
@@ -523,7 +526,11 @@ class ForwardBackward(SetUp):
 
         if self._linear is None:
             self._linear = Identity()
+        # FAASTA params
         self.iterative_prox = iterative_prox
+        self.adaptative_precision = adaptative_precision
+        self._precision_level = initial_precision_level
+        self.precision_increase_rate = precision_increase_rate
         # Set the algorithm parameters
         (self._check_param(param) for param in (beta_param, lambda_param))
         self._beta = beta_param
@@ -581,7 +588,10 @@ class ForwardBackward(SetUp):
         # Step 2 from alg.10.7.
         extra_args = {}
         if self.iterative_prox:
-            extra_args['precision_level'] = max(int(0.5 * (self.idx + 1)), 1)
+            if self.adaptative_precision:
+                extra_args['precision_level'] = max(1, int(self._precision_level))
+            else:
+                extra_args['precision_level'] = max(1, int(0.5 * self.idx))
         self._x_new = self._prox.op(
             y_old,
             extra_factor=self._beta,
@@ -593,6 +603,7 @@ class ForwardBackward(SetUp):
 
         # Restarting step from alg.4-5 in [L2018]
         if self._is_restart(self._z_old, self._x_new, self._x_old):
+            self._precision_level *= self.precision_increase_rate
             self._z_new = self._x_new
 
         # Update old values for next iteration.
