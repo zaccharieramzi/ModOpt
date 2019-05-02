@@ -195,7 +195,7 @@ def get_mr_filters(data_shape, opt='', coarse=False,
         return mr_filters[:-1]
 
 
-def filter_convolve(data, filters, filter_rot=False, method='scipy'):
+def filter_convolve(data, filters, filter_rot=False, method='scipy', parallel=True):
     r"""Filter convolve
 
     This method convolves the input image with the wavelet filters
@@ -243,13 +243,43 @@ def filter_convolve(data, filters, filter_rot=False, method='scipy'):
            [ 14550.,  14586.,  14550.]])
 
     """
+    if parallel:
+        try:
+            from joblib import Parallel, delayed, load, dump
+        except ImportError:
+            # TODO: add warning to say that joblib could not be imported
+            parallel = False
+        else:
+            import os
+            import tempfile
+
+    if parallel:
+        conv = delayed(convolve)
+        temp_folder = tempfile.mkdtemp()
+        filename = os.path.join(temp_folder, 'data.mmap')
+        if os.path.exists(filename):
+            os.unlink(filename)
+        _ = dump(data, filename)
+        data = load(filename, mmap_mode='r+')
+        n_filters = len(filters)
+        parallel_pool = Parallel(n_jobs=n_filters, max_nbytes=None, prefer='processes', pre_dispatch='n_jobs')
+    else:
+        conv = convolve
 
     if filter_rot:
-        return np.sum([convolve(coef, f, method=method) for coef, f in
-                       zip(data, rotate_stack(filters))], axis=0)
+        convolutions = (
+            conv(coef, f.astype('float64'), method=method)
+            for coef, f in zip(data, rotate_stack(filters))
+        )
+        if parallel:
+            convolutions = parallel_pool(convolutions)
+        return np.sum(convolutions, axis=0)
 
     else:
-        return np.array([convolve(data, f, method=method) for f in filters])
+        convolutions = (conv(data, f.astype('float64', copy=False), method=method) for f in filters)
+        if parallel:
+            convolutions = parallel_pool(convolutions)
+        return np.array(list(convolutions))
 
 
 def filter_convolve_stack(data, filters, filter_rot=False, method='scipy'):
