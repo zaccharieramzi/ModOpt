@@ -262,7 +262,7 @@ def filter_convolve(data, filters, filter_rot=False, method='scipy', parallel=Tr
         _ = dump(data, filename)
         data = load(filename, mmap_mode='r+')
         n_filters = len(filters)
-        parallel_pool = Parallel(n_jobs=n_filters, max_nbytes=None, prefer='processes', pre_dispatch='n_jobs')
+        parallel_pool = Parallel(n_jobs=n_filters, max_nbytes=None, pre_dispatch='n_jobs', backend='threading')
     else:
         conv = convolve
 
