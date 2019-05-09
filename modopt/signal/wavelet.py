@@ -151,8 +151,8 @@ def _trim_filter(filter_array):
     return filter_array[min_idx:max_idx + 1, min_idx:max_idx + 1]
 
 
-def get_mr_filters(data_shape, opt='', coarse=False,
-                   trim=True):  # pragma: no cover
+
+def get_mr_filters(data_shape, opt='', coarse=False, trim=True):  # pragma: no cover
     """Get mr_transform filters
 
     This method obtains wavelet filters by calling mr_transform
@@ -262,7 +262,7 @@ def filter_convolve(data, filters, filter_rot=False, method='scipy', parallel=Tr
         _ = dump(data, filename)
         data = load(filename, mmap_mode='r+')
         n_filters = len(filters)
-        parallel_pool = Parallel(n_jobs=n_filters, max_nbytes=None, pre_dispatch='n_jobs', backend='threading')
+        parallel_pool = Parallel(n_jobs=n_filters, max_nbytes=None, backend='loky')
     else:
         conv = convolve
 
