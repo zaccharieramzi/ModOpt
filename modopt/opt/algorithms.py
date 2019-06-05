@@ -591,7 +591,7 @@ class ForwardBackward(SetUp):
             if self.adaptative_precision:
                 extra_args['precision_level'] = max(1, int(self._precision_level))
             else:
-                extra_args['precision_level'] = max(1, int(0.5 * self.idx))
+                extra_args['precision_level'] = max(1, int(self.precision_increase_rate * self.idx))
         self._x_new = self._prox.op(
             y_old,
             extra_factor=self._beta,
