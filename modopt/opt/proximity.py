@@ -409,6 +409,7 @@ class LinearCompositionIterativeProx(LinearCompositionProx):
             tau=tau,
             rho=rho,
             auto_iterate=False,
+            progress=False,
             metric_call_period=1,
             metrics={},
         )
