@@ -18,6 +18,8 @@ Sparse2D Repository: https://github.com/CosmoStat/Sparse2D
 
 from __future__ import division
 from builtins import zip
+import random
+
 import numpy as np
 from os import remove
 from subprocess import check_call
@@ -95,6 +97,8 @@ def call_mr_transform(data, opt='', path='./',
 
     # Create a unique string using the current date and time.
     unique_string = datetime.now().strftime('%Y.%m.%d_%H.%M.%S')
+    random_number = random.getrandbits(128)
+    unique_string += str(random_number)
 
     # Set the ouput file names.
     file_name = path + 'mr_temp_' + unique_string
