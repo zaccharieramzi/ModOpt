@@ -270,7 +270,7 @@ class FISTA(object):
     ]
 
     def __init__(self, restart_strategy=None, min_beta=None, s_greedy=None,
-                 xi_restart=None, a_cd=None, p_lazy=1, q_lazy=1, r_lazy=4):
+                 xi_restart=None, a_cd=None, p_lazy=1, q_lazy=1, r_lazy=4, **dummy_kwargs):
 
         if isinstance(a_cd, type(None)):
             self.mode = 'regular'
